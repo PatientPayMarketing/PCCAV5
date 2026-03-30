@@ -22,7 +22,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com;
@@ -91,6 +91,8 @@
       min-height: 100vh;
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
 
     h1, h2, h3, h4, h5, h6 {
@@ -332,6 +334,17 @@
 
       /* Download confirmation */
       .pp-confirm-card { padding: 32px 24px !important; }
+
+      /* Results: Your Numbers grid — single column on narrow screens */
+      .pp-numbers-grid { grid-template-columns: 1fr !important; }
+
+      /* Recommendation Now/Target indent — reduce on mobile */
+      .pp-rec-detail { margin-left: 0 !important; margin-top: 8px !important; }
+
+      /* Modal: bottom-sheet needs safe area */
+      .pp-modal-card {
+        padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+      }
     }
 
     /* Touch target minimum: ensure all interactive elements are at least 44px */
@@ -1247,7 +1260,7 @@
                     <div style={{ width: 3, height: 20, borderRadius: 2, background: 'var(--pp-gold)' }} />
                     <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-head)' }}>Your Numbers</h3>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+                  <div className="pp-numbers-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
                     {insights.staffHoursPerWeek > 0 && (
                       <div className="card" style={{ padding: '14px 16px' }}>
                         <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-head)', fontFamily: "'Archivo'", marginBottom: 4 }}>
@@ -1354,7 +1367,7 @@
                     </div>
                   </div>
                   {rec.currentState && (
-                    <div style={{ marginLeft: 48, fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.5 }}>
+                    <div className="pp-rec-detail" style={{ marginLeft: 48, fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.5 }}>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 4 }}>
                         <span style={{ color: 'var(--pp-warning)', fontWeight: 600, flexShrink: 0 }}>Now:</span>
                         <span>{rec.currentState}</span>
