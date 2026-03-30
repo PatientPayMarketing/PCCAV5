@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<!--
+  ============================================
+  PATIENTPAY SENIOR LIVING ASSESSMENT — V5
+  UI VERSION: v5-premium-light
+  CREATED: March 2026
+  ============================================
+
+  V5 FLOW:
+  1. Landing page → 2 segment choices (Senior Living / Skilled Nursing)
+  2. Questions (6 per segment) with segmented progress bar
+  3. Results journey (4 slides: overview → insights → improvements → CTA)
+  4. Email gate: "Get Your Detailed Report" → modal (Name, Email, Org)
+     - Email domain filtering (free providers blocked, competitors blocked)
+     - Honeypot bot detection
+     - On submit: trigger PDF download + fire webhook
+  5. Premium light theme — warm white, editorial authority, gold accents
+
+  CORE ENGINE: ./core/assessment-engine.js (v5.0)
+  STANDALONE: No - imports from core/assessment-engine.js
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src https://fonts.gstatic.com;
+    connect-src 'self' https://hook.us1.make.com https://hook.us2.make.com blob:;
+    img-src 'self' data: blob:;
+    object-src 'none';
+    base-uri 'self';
+  ">
+  <title>Payment Readiness Assessment | PatientPay</title>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- React 18.3.1 (pinned) with SRI integrity hashes -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"
+    integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"
+    integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1"></script>
+  <!-- Babel Standalone 7.26.9 (pinned) with SRI integrity hash -->
+  <script src="https://unpkg.com/@babel/standalone@7.26.9/babel.min.js" crossorigin="anonymous"
+    integrity="sha384-pKNXKj7jF9BNMkQyGWg5YLfoPyqBa/gf7wjTSoTGQlwxbZB+sabJuKyOHR6JQvTd"></script>
+  <script src="./core/assessment-engine.js"></script>
+  <style>
+    :root {
+      --pp-navy: #072140;
+      --pp-blue: #3c8fc7;
+      --pp-gold: #D4A012;
+      --pp-gold-light: #fdf4dc;
+      --pp-gold-border: #e8c84a;
+      --pp-success: #1B7A4A;
+      --pp-success-light: #e8f5ef;
+      --pp-warning: #C07B18;
+      --pp-warning-light: #fdf3e3;
+      --pp-error: #B83A3A;
+
+      --bg-base: #FAFAF8;
+      --bg-raised: #FFFFFF;
+      --bg-surface: #F7F6F4;
+      --bg-inset: #F2F1EE;
+
+      --border-dim: #E8E6E1;
+      --border-rule: #D4D1CB;
+      --border-active: #3c8fc7;
+
+      --text-head: #1A1A1A;
+      --text-body: #4A4A4A;
+      --text-dim: #8A8780;
+      --text-faint: #B5B2AB;
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+
+      --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+
+    body {
+      font-family: 'Manrope', sans-serif;
+      background: var(--bg-base);
+      color: var(--text-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Archivo', sans-serif;
+      color: var(--text-head);
+    }
+
+    /* --- Cards --- */
+    .card {
+      background: var(--bg-raised);
+      border: 1px solid var(--border-dim);
+      border-radius: 10px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* --- Buttons --- */
+    .btn-primary {
+      background: var(--pp-gold);
+      color: var(--pp-navy);
+      border: none;
+      padding: 15px 32px;
+      border-radius: 8px;
+      font-family: 'Archivo', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+      letter-spacing: 0.01em;
+      box-shadow: var(--shadow-sm);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); background: #dba91a; }
+    .btn-primary:active { transform: translateY(0); box-shadow: var(--shadow-sm); }
+
+    .btn-navy {
+      background: var(--pp-navy);
+      color: #fff;
+      border: none;
+      padding: 18px 48px;
+      border-radius: 8px;
+      font-family: 'Archivo', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      letter-spacing: 0.01em;
+      box-shadow: var(--shadow-md);
+    }
+    .btn-navy:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+    .btn-navy:active { transform: translateY(0); box-shadow: var(--shadow-sm); }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border-rule);
+      padding: 15px 32px;
+      border-radius: 8px;
+      font-family: 'Archivo', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .btn-secondary:hover { border-color: var(--text-dim); color: var(--text-head); }
+
+    /* --- Range slider --- */
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--border-dim);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid var(--pp-blue);
+      box-shadow: var(--shadow-md);
+      cursor: pointer;
+      transition: box-shadow 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { box-shadow: var(--shadow-lg); }
+    input[type="range"]::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid var(--pp-blue);
+      box-shadow: var(--shadow-md);
+      cursor: pointer;
+    }
+
+    /* --- Input fields --- */
+    .input-field {
+      width: 100%;
+      padding: 14px 18px;
+      background: var(--bg-inset);
+      border: 1px solid var(--border-rule);
+      border-radius: 8px;
+      color: var(--text-head);
+      font-family: 'Manrope', sans-serif;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .input-field:focus { border-color: var(--pp-blue); box-shadow: 0 0 0 3px rgba(60,143,199,0.1); }
+    .input-field::placeholder { color: var(--text-faint); }
+
+    /* --- Animations (subtle, controlled) --- */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* --- Focus Visibility --- */
+    button:focus-visible, [role="checkbox"]:focus-visible {
+      outline: 2px solid var(--pp-blue);
+      outline-offset: 2px;
+    }
+    input[type="range"]:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(60,143,199,0.2);
+      border-radius: 8px;
+    }
+
+    /* --- Reduced Motion --- */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* --- Modal --- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      animation: fadeIn 0.2s ease-out;
+      backdrop-filter: blur(2px);
+    }
+
+    /* --- Responsive: Tablet (768px and below) --- */
+    @media (max-width: 768px) {
+      .segment-grid { grid-template-columns: 1fr !important; }
+
+      /* Header */
+      .pp-header { padding: 16px 20px !important; }
+
+      /* Landing */
+      .pp-landing-content { padding: 40px 20px !important; }
+
+      /* Question cards: larger touch targets */
+      .pp-option-btn { min-height: 48px !important; }
+
+      /* Slider: larger thumb for touch */
+      input[type="range"]::-webkit-slider-thumb {
+        width: 30px !important;
+        height: 30px !important;
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 30px !important;
+        height: 30px !important;
+      }
+
+      /* Results: score number */
+      .pp-score-number { font-size: 64px !important; }
+
+      /* Modal: fit screen */
+      .modal-overlay { padding: 16px !important; }
+      .pp-modal-card { padding: 28px 24px !important; }
+
+      /* Sources wrap */
+      .pp-sources { gap: 4px !important; }
+    }
+
+    /* --- Responsive: Mobile (480px and below) --- */
+    @media (max-width: 480px) {
+      /* Header: compact */
+      .pp-header { padding: 12px 16px !important; }
+      .pp-header-divider { display: none !important; }
+      .pp-header-subtitle { font-size: 11px !important; }
+
+      /* Landing: tighter */
+      .pp-landing-content { padding: 28px 16px !important; }
+      .pp-landing-intro { margin-bottom: 36px !important; }
+      .pp-landing-desc { font-size: 15px !important; }
+
+      /* Segment cards */
+      .segment-grid { gap: 14px !important; }
+
+      /* Question screen */
+      .pp-question-wrap { padding: 32px 16px !important; }
+      .pp-question-content { max-width: 100% !important; }
+
+      /* Slider value display */
+      .pp-slider-value { font-size: 44px !important; }
+      .pp-slider-unit { font-size: 20px !important; }
+
+      /* Results journey */
+      .pp-results-wrap { padding: 24px 16px !important; }
+      .pp-results-content { max-width: 100% !important; }
+      .pp-score-number { font-size: 56px !important; }
+      .pp-category-card { padding: 20px !important; }
+
+      /* Slide nav buttons */
+      .btn-primary, .btn-secondary, .btn-navy {
+        padding: 14px 20px !important;
+        font-size: 14px !important;
+      }
+
+      /* Modal: full-width */
+      .modal-overlay { padding: 10px !important; align-items: flex-end !important; }
+      .pp-modal-card {
+        padding: 24px 20px !important;
+        border-radius: 12px 12px 0 0 !important;
+        max-width: 100% !important;
+      }
+
+      /* Input fields: larger for mobile */
+      .input-field { padding: 16px !important; font-size: 16px !important; }
+
+      /* Report includes card */
+      .pp-report-card { padding: 20px !important; }
+
+      /* Download confirmation */
+      .pp-confirm-card { padding: 32px 24px !important; }
+    }
+
+    /* Touch target minimum: ensure all interactive elements are at least 44px */
+    @media (pointer: coarse) {
+      button { min-height: 44px; }
+      input[type="range"] { height: 10px; }
+      input[type="range"]::-webkit-slider-thumb {
+        width: 32px;
+        height: 32px;
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 32px;
+        height: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Thin accent line at top -->
+  <div style="height: 3px; background: linear-gradient(90deg, var(--pp-navy) 0%, var(--pp-blue) 50%, var(--pp-gold) 100%);"></div>
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo, useCallback, memo } = React;
+
+    // ============================================
+    // ERROR BOUNDARY
+    // ============================================
+    class ErrorBoundary extends React.Component {
+      constructor(props) { super(props); this.state = { hasError: false }; }
+      static getDerivedStateFromError() { return { hasError: true }; }
+      componentDidCatch(error, info) { console.error('Assessment Error:', error, info); }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+              <div className="card" style={{ padding: 48, textAlign: 'center', maxWidth: 440 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>Something went wrong</h2>
+                <p style={{ color: 'var(--text-dim)', marginBottom: 24, fontSize: 15 }}>Please refresh the page to try again.</p>
+                <button className="btn-primary" onClick={() => window.location.reload()}>Refresh Page</button>
+              </div>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
+    // ============================================
+    // ENGINE IMPORTS
+    // ============================================
+    const {
+      facilityTypes, colors: brandColors, stats: industryStats,
+      industryBenchmarks, questions, categoryNames, snfCategoryNames,
+      getCategoryName, resultsFlow, resultsFlowV5, sources,
+      getVisibleQuestions, calculateQuestionScore, calculateScores,
+      getScoreLevel, getScoreColor, calculateInsights,
+      getActionableRecommendations, getGapAnalysis, generateResultsSummary,
+      getPerformanceVsBenchmark, getStrengths, calculatePatientPayProjections,
+      prepareExportData, downloadPDFReport, sendWebhook, generatePDFReport
+    } = window.AssessmentEngine;
+
+    const CATEGORY_COLORS = ['#3c8fc7', '#7c6bbf', '#c8963e'];
+
+    // Accessible text colors (WCAG AA 4.5:1 against #FAFAF8)
+    const getAccessibleScoreColor = (score) => {
+      if (score >= 90) return '#0D7A56';   // dark green (from #10B981)
+      if (score >= 80) return '#4D7A0F';   // dark lime (from #84CC16)
+      if (score >= 60) return '#B45309';   // dark amber (from #F59E0B)
+      if (score >= 40) return '#C2410C';   // dark orange (from #F97316)
+      return '#DC2626';                     // dark red (from #EF4444)
+    };
+
+    // ============================================
+    // FUNNEL TRACKING
+    // ============================================
+    const FunnelTracker = {
+      sessionId: `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      webhookUrl: 'https://hook.us2.make.com/d6l99sh2s49kbowf79nfhfai8yqokbqq',
+      async send(event, extra = {}) {
+        const payload = {
+          sessionId: this.sessionId,
+          timestamp: new Date().toISOString(),
+          event,
+          userAgent: navigator.userAgent,
+          screenWidth: window.screen.width,
+          screenHeight: window.screen.height,
+          ...extra
+        };
+        try {
+          await fetch(this.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } catch (e) { console.warn('Funnel event failed:', e); }
+      }
+    };
+
+    // ============================================
+    // EMAIL DOMAIN FILTERING
+    // ============================================
+    const FREE_EMAIL_DOMAINS = [
+      'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com',
+      'icloud.com', 'mail.com', 'protonmail.com', 'zoho.com', 'yandex.com',
+      'gmx.com', 'inbox.com', 'live.com', 'msn.com', 'me.com',
+      'comcast.net', 'verizon.net', 'att.net', 'sbcglobal.net', 'cox.net'
+    ];
+    const COMPETITOR_DOMAINS = [
+      'instamed.com', 'waystar.com', 'cedar.com', 'transactcare.com',
+      'inovalon.com', 'revspringinc.com', 'availity.com', 'inboxhealth.com',
+      'caregrove.com', 'alineops.com', 'yardi.com'
+    ];
+
+    // ============================================
+    // ANIMATED NUMBER (count up)
+    // ============================================
+    const AnimatedNumber = ({ value, suffix = '', duration = 1800, delay = 0 }) => {
+      const [display, setDisplay] = useState(0);
+      const [started, setStarted] = useState(false);
+      useEffect(() => {
+        const timer = setTimeout(() => setStarted(true), delay);
+        return () => clearTimeout(timer);
+      }, [delay]);
+      useEffect(() => {
+        if (!started) return;
+        const startTime = performance.now();
+        const animate = (now) => {
+          const p = Math.min((now - startTime) / duration, 1);
+          const eased = 1 - Math.pow(1 - p, 4);
+          setDisplay(Math.round(eased * value));
+          if (p < 1) requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+      }, [started, value, duration]);
+      return <span>{display}{suffix}</span>;
+    };
+
+    // ============================================
+    // HEADER BAR
+    // ============================================
+    const Header = () => (
+      <div className="pp-header" style={{
+        padding: '20px 40px',
+        background: 'var(--bg-raised)',
+        borderBottom: '1px solid var(--border-dim)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontFamily: "'Archivo'", fontSize: 18, fontWeight: 800, color: 'var(--pp-navy)', letterSpacing: '-0.02em' }}>
+            Patient<span style={{ color: 'var(--pp-blue)' }}>Pay</span>
+          </span>
+          <span className="pp-header-divider" style={{ width: 1, height: 20, background: 'var(--border-rule)', display: 'inline-block' }} />
+          <span className="pp-header-subtitle" style={{ fontSize: 13, color: 'var(--text-dim)', fontWeight: 500, letterSpacing: '0.01em' }}>Payment Readiness Assessment</span>
+        </div>
+      </div>
+    );
+
+    // ============================================
+    // LANDING SCREEN
+    // ============================================
+    const LandingScreen = ({ onSelectSegment }) => {
+      useEffect(() => { FunnelTracker.send('page_load'); }, []);
+
+      const segments = [
+        {
+          id: 'SL',
+          label: 'Senior Living',
+          sub: 'Assisted Living, Memory Care, Independent Living, Life Plan Communities',
+          detail: '6 questions. Under 2 minutes.',
+          marker: 'Primarily private pay'
+        },
+        {
+          id: 'SNF',
+          label: 'Skilled Nursing',
+          sub: 'Skilled nursing, rehabilitation, and 24/7 clinical care',
+          detail: '6 questions. Under 90 seconds.',
+          marker: 'Patient responsibility focus'
+        }
+      ];
+
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
+          <Header />
+          <div className="pp-landing-content" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 24px' }}>
+            <div style={{ maxWidth: 700, width: '100%' }}>
+
+              <div className="pp-landing-intro" style={{ marginBottom: 56, animation: 'fadeUp 0.5s var(--ease-out) both' }}>
+                <h1 style={{
+                  fontSize: 'clamp(28px, 5vw, 52px)', fontWeight: 800,
+                  lineHeight: 1.1, letterSpacing: '-0.03em', marginBottom: 20,
+                  color: 'var(--text-head)'
+                }}>
+                  How does your billing<br />operation compare?
+                </h1>
+                <p className="pp-landing-desc" style={{ fontSize: 17, color: 'var(--text-dim)', lineHeight: 1.65, maxWidth: 500 }}>
+                  A few questions about your payment workflow. Instant benchmark score against industry peers. No account required.
+                </p>
+              </div>
+
+              <div style={{ marginBottom: 20, animation: 'fadeUp 0.5s var(--ease-out) 0.1s both' }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  Select your facility type
+                </span>
+                <div style={{ width: 40, height: 2, background: 'var(--pp-gold)', marginTop: 8, borderRadius: 1 }} />
+              </div>
+
+              <div className="segment-grid" style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20,
+                animation: 'fadeUp 0.5s var(--ease-out) 0.15s both'
+              }}>
+                {segments.map((seg) => (
+                  <button
+                    key={seg.id}
+                    onClick={() => {
+                      FunnelTracker.send('facility_selected', { segment: seg.id });
+                      onSelectSegment(seg.id);
+                    }}
+                    className="card"
+                    style={{
+                      padding: '32px 28px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
+                      position: 'relative'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = 'var(--shadow-lg)'; e.currentTarget.style.borderColor = 'var(--pp-blue)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; e.currentTarget.style.borderColor = 'var(--border-dim)'; }}
+                  >
+                    <div style={{
+                      fontSize: 11, fontWeight: 700, color: 'var(--pp-blue)', letterSpacing: '0.06em',
+                      textTransform: 'uppercase', marginBottom: 12
+                    }}>{seg.marker}</div>
+                    <h3 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.02em', color: 'var(--text-head)' }}>{seg.label}</h3>
+                    <p style={{ fontSize: 14, color: 'var(--text-dim)', lineHeight: 1.55, marginBottom: 20 }}>{seg.sub}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 13, color: 'var(--text-body)', fontWeight: 600 }}>{seg.detail}</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--pp-blue)', opacity: 0.7 }}>
+                        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <p style={{
+                fontSize: 12, color: 'var(--text-faint)', marginTop: 24, textAlign: 'center',
+                animation: 'fadeUp 0.5s var(--ease-out) 0.25s both'
+              }}>
+                Based on data from 300+ industry benchmarks and research studies
+              </p>
+
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ============================================
+    // QUESTION CARD
+    // ============================================
+    const QuestionCard = ({ question, answer, onAnswer, onNext, onBack, questionIndex, totalQuestions, isFirst, isLast, selectedSegment }) => {
+      const [phase, setPhase] = useState('entering');
+      const q = question;
+
+      const getInitialValue = (ans, questionType, defaultVal, question) => {
+        if (ans !== undefined && ans !== null) return ans;
+        if (questionType === 'slider') return defaultVal !== undefined ? defaultVal : (question.min || 0);
+        if (questionType === 'multi') return [];
+        return undefined;
+      };
+
+      const [localValue, setLocalValue] = useState(() => getInitialValue(answer, q.type, q.default, q));
+      const answerRef = useRef(answer);
+
+      useEffect(() => {
+        answerRef.current = answer;
+        setLocalValue(getInitialValue(answerRef.current, q.type, q.default, q));
+        const timer = setTimeout(() => setPhase('visible'), 30);
+        return () => clearTimeout(timer);
+      }, [q.id]);
+
+      const progress = ((questionIndex + 1) / totalQuestions) * 100;
+
+      const isAnswered = () => {
+        if (localValue === undefined || localValue === null) return false;
+        if (q.type === 'multi') return Array.isArray(localValue) && localValue.length > 0;
+        if (q.type === 'slider') return true;
+        return localValue !== undefined && localValue !== null && localValue !== '';
+      };
+
+      const handleNext = () => {
+        if (!isAnswered()) return;
+        onAnswer(q.id, localValue);
+        setPhase('exiting');
+        setTimeout(() => onNext(q.id, localValue), 300);
+      };
+
+      const handleBack = () => {
+        setPhase('exiting');
+        setTimeout(() => onBack(), 300);
+      };
+
+      const getSliderColor = () => {
+        if (q.type !== 'slider') return 'var(--pp-blue)';
+        const v = localValue !== undefined && localValue !== null ? localValue : (q.default || q.min || 0);
+        if (typeof q.scoring === 'function') return getScoreColor(q.scoring(v));
+        return getScoreColor(((v - (q.min || 0)) / ((q.max || 100) - (q.min || 0))) * 100);
+      };
+
+      const isSNF = selectedSegment === 'SNF';
+
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
+          <Header />
+          <div className="pp-question-wrap" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
+            <div className="pp-question-content" style={{ maxWidth: 600, width: '100%' }}>
+
+              {/* Step label + segment */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14,
+                opacity: phase === 'visible' ? 1 : 0, transition: 'opacity 0.3s ease'
+              }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-dim)' }}>
+                  Question {questionIndex + 1} of {totalQuestions}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 500 }}>
+                  {isSNF ? 'Skilled Nursing' : 'Senior Living'}
+                </span>
+              </div>
+
+              {/* Segmented progress bar */}
+              <div role="progressbar" aria-valuenow={questionIndex + 1} aria-valuemin={1} aria-valuemax={totalQuestions}
+                aria-label={`Question ${questionIndex + 1} of ${totalQuestions}`}
+                style={{ display: 'flex', gap: 4, marginBottom: 40 }}>
+                {Array.from({ length: totalQuestions }).map((_, i) => (
+                  <div key={i} style={{
+                    flex: 1, height: 4, borderRadius: 2, overflow: 'hidden',
+                    background: 'var(--border-dim)'
+                  }}>
+                    <div style={{
+                      height: '100%', borderRadius: 2,
+                      background: i < questionIndex ? 'var(--pp-blue)' : i === questionIndex ? 'var(--pp-gold)' : 'transparent',
+                      width: i <= questionIndex ? '100%' : '0%',
+                      transition: 'width 0.4s var(--ease-out), background 0.3s ease'
+                    }} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Question content */}
+              <div style={{
+                opacity: phase === 'visible' ? 1 : 0,
+                transform: phase === 'visible' ? 'translateY(0)' : 'translateY(8px)',
+                transition: 'all 0.4s var(--ease-out)'
+              }}>
+                <h2 style={{
+                  fontSize: 'clamp(24px, 3.5vw, 30px)', fontWeight: 800,
+                  lineHeight: 1.25, marginBottom: q.subtext ? 10 : 32,
+                  letterSpacing: '-0.02em', color: 'var(--text-head)'
+                }}>{q.question}</h2>
+
+                {q.subtext && (
+                  <p style={{ fontSize: 14, color: 'var(--text-dim)', marginBottom: 32, lineHeight: 1.55 }}>{q.subtext}</p>
+                )}
+
+                {/* Slider */}
+                {q.type === 'slider' && (() => {
+                  const v = localValue !== undefined && localValue !== null ? localValue : (q.default || q.min || 0);
+                  const pct = ((v - q.min) / (q.max - q.min)) * 100;
+                  const c = getSliderColor();
+                  return (
+                    <div>
+                      <div style={{ marginBottom: 32, textAlign: 'center' }}>
+                        <span className="pp-slider-value" style={{ fontSize: 56, fontWeight: 800, fontFamily: "'Archivo'", color: 'var(--text-head)', letterSpacing: '-0.03em' }}>
+                          {v}<span className="pp-slider-unit" style={{ fontSize: 24, fontWeight: 500, color: 'var(--text-dim)' }}>{q.unit || ''}</span>
+                        </span>
+                      </div>
+                      <div style={{ position: 'relative', marginBottom: 12 }}>
+                        <div style={{
+                          position: 'absolute', top: '50%', left: 0, right: 0, height: 6, borderRadius: 3,
+                          transform: 'translateY(-50%)', zIndex: 0,
+                          background: `linear-gradient(90deg, ${c} ${pct}%, var(--border-dim) ${pct}%)`
+                        }} />
+                        <input type="range" min={q.min} max={q.max} value={v}
+                          aria-label={q.question} aria-valuetext={`${v}${q.unit || ''}`}
+                          onChange={(e) => { const val = parseInt(e.target.value); setLocalValue(val); onAnswer(q.id, val); }}
+                          style={{ position: 'relative', zIndex: 1, background: 'transparent' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{q.min}{q.unit || ''}</span>
+                        {q.benchmarkLabel && <span style={{ fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic' }}>{q.benchmarkLabel}</span>}
+                        <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{q.max}{q.unit || ''}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Single select */}
+                {q.type === 'single' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {q.options.map((opt, i) => {
+                      const optVal = opt.value || opt.label;
+                      const sel = localValue === optVal || localValue === opt.label;
+                      return (
+                        <button key={i} className="pp-option-btn" onClick={() => { setLocalValue(optVal); onAnswer(q.id, optVal); }}
+                          style={{
+                            padding: '16px 20px', borderRadius: 8, textAlign: 'left',
+                            background: sel ? 'var(--bg-raised)' : 'var(--bg-inset)',
+                            border: sel ? '2px solid var(--pp-blue)' : '1px solid var(--border-dim)',
+                            color: sel ? 'var(--text-head)' : 'var(--text-body)',
+                            cursor: 'pointer',
+                            transition: 'border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
+                            fontFamily: "'Manrope'", fontSize: 15, fontWeight: sel ? 600 : 400,
+                            boxShadow: sel ? 'var(--shadow-sm)' : 'none'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <div style={{
+                              width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                              border: `2px solid ${sel ? 'var(--pp-blue)' : 'var(--border-rule)'}`,
+                              background: sel ? 'var(--pp-blue)' : 'transparent',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 0.15s ease'
+                            }}>
+                              {sel && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                            </div>
+                            <span>{opt.label}</span>
+                          </div>
+                          {opt.description && (
+                            <p style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: 6, marginLeft: 34, lineHeight: 1.45 }}>{opt.description}</p>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Multi select */}
+                {q.type === 'multi' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {q.options.map((opt, i) => {
+                      const safe = Array.isArray(localValue) ? localValue : [];
+                      const optVal = opt.value || opt.label;
+                      const sel = safe.includes(optVal);
+                      return (
+                        <button key={i} className="pp-option-btn" role="checkbox" aria-checked={sel}
+                          onClick={() => {
+                          const nv = sel ? safe.filter(s => s !== optVal) : [...safe, optVal];
+                          setLocalValue(nv); onAnswer(q.id, nv);
+                        }}
+                          style={{
+                            padding: '16px 20px', borderRadius: 8, textAlign: 'left',
+                            background: sel ? 'var(--bg-raised)' : 'var(--bg-inset)',
+                            border: sel ? '2px solid var(--pp-blue)' : '1px solid var(--border-dim)',
+                            color: sel ? 'var(--text-head)' : 'var(--text-body)',
+                            cursor: 'pointer',
+                            transition: 'border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
+                            fontFamily: "'Manrope'", fontSize: 15, fontWeight: sel ? 600 : 400,
+                            boxShadow: sel ? 'var(--shadow-sm)' : 'none'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <div style={{
+                              width: 20, height: 20, borderRadius: 5, flexShrink: 0,
+                              border: `2px solid ${sel ? 'var(--pp-blue)' : 'var(--border-rule)'}`,
+                              background: sel ? 'var(--pp-blue)' : 'transparent',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 0.15s ease'
+                            }}>
+                              {sel && (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                  <path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              )}
+                            </div>
+                            <span>{opt.label}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Insight callout — always reserves space, fades in/out smoothly */}
+                {q.insight && typeof q.insight.trigger === 'function' && (() => {
+                  const showInsight = q.insight.trigger(localValue);
+                  return (
+                    <div style={{
+                      marginTop: 24, padding: '16px 20px', borderRadius: 8,
+                      background: 'var(--pp-gold-light)', borderLeft: '3px solid var(--pp-gold)',
+                      opacity: showInsight ? 1 : 0,
+                      transition: 'opacity 0.3s ease'
+                    }}>
+                      <p style={{ fontSize: 14, color: 'var(--text-body)', lineHeight: 1.6 }}>
+                        {q.insight.message.replace('{value}', localValue)}
+                      </p>
+                      {q.insight.proofPoint && (
+                        <p style={{ fontSize: 13, color: 'var(--pp-gold)', fontWeight: 700, marginTop: 8 }}>{q.insight.proofPoint}</p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Navigation */}
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', marginTop: 48,
+                  paddingTop: 24, borderTop: '1px solid var(--border-dim)'
+                }}>
+                  {!isFirst ? (
+                    <button className="btn-secondary" onClick={handleBack} style={{ padding: '12px 24px', fontSize: 14 }}>Back</button>
+                  ) : <div />}
+                  <button className="btn-primary" onClick={handleNext}
+                    style={{ opacity: isAnswered() ? 1 : 0.35, pointerEvents: isAnswered() ? 'auto' : 'none', padding: '13px 28px', fontSize: 14 }}>
+                    {isLast ? 'See My Results' : 'Continue'}
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ============================================
+    // PROCESSING SCREEN
+    // ============================================
+    const ProcessingScreen = ({ onComplete }) => {
+      const [progress, setProgress] = useState(0);
+      const labels = ['Analyzing responses', 'Calculating category scores', 'Comparing against benchmarks', 'Building your insights'];
+      const step = Math.min(Math.floor(progress / 25), 3);
+
+      useEffect(() => {
+        const iv = setInterval(() => {
+          setProgress(prev => {
+            if (prev >= 100) { clearInterval(iv); setTimeout(onComplete, 500); return 100; }
+            return prev + 1.5;
+          });
+        }, 50);
+        return () => clearInterval(iv);
+      }, []);
+
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
+          <Header />
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <div style={{ maxWidth: 420, width: '100%', textAlign: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 28 }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: '50%', background: 'var(--pp-blue)',
+                  animation: 'fadeIn 0.6s ease infinite alternate'
+                }} />
+                <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-head)', fontFamily: "'Archivo'" }}>
+                  {labels[step]}
+                </p>
+              </div>
+              <div style={{ height: 4, background: 'var(--border-dim)', borderRadius: 2, overflow: 'hidden', marginBottom: 16 }}>
+                <div style={{
+                  height: '100%', borderRadius: 2,
+                  background: `linear-gradient(90deg, var(--pp-blue), var(--pp-gold))`,
+                  width: `${progress}%`, transition: 'width 0.2s linear'
+                }} />
+              </div>
+              <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>{Math.round(progress)}%</span>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ============================================
+    // EMAIL GATE MODAL
+    // ============================================
+    const EmailGateModal = ({ onSubmit, onClose, segment }) => {
+      const [formData, setFormData] = useState({ name: '', email: '', organization: '' });
+      const [errors, setErrors] = useState({});
+      const [submitting, setSubmitting] = useState(false);
+      const [hpField, setHpField] = useState('');
+
+      const handleSubmit = () => {
+        if (submitting) return;
+        if (hpField) { console.log('Assessment submitted.'); return; }
+        const newErrors = {};
+        if (!formData.name.trim()) newErrors.name = 'Required';
+        if (formData.name.trim().length > 100) newErrors.name = 'Name is too long';
+        if (!formData.email.trim()) newErrors.email = 'Required';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+          newErrors.email = 'Please enter a valid email';
+        } else {
+          const d = formData.email.trim().toLowerCase().split('@')[1];
+          if (FREE_EMAIL_DOMAINS.includes(d)) newErrors.email = 'Please use your business email address';
+          else if (COMPETITOR_DOMAINS.includes(d)) newErrors.email = 'competitor';
+        }
+        if (!formData.organization.trim()) newErrors.organization = 'Required';
+        if (formData.organization.trim().length > 200) newErrors.organization = 'Organization name is too long';
+        if (Object.keys(newErrors).length) {
+          if (newErrors.email === 'competitor') { onSubmit({ ...formData, isCompetitor: true }); return; }
+          setErrors(newErrors); return;
+        }
+        setSubmitting(true);
+        onSubmit({
+          name: formData.name.trim().substring(0, 100),
+          email: formData.email.trim().substring(0, 254),
+          organizationName: formData.organization.trim().substring(0, 200)
+        });
+      };
+
+      const handleChange = (field) => (e) => {
+        setFormData(prev => ({ ...prev, [field]: e.target.value }));
+        if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
+      };
+
+      const Field = ({ label, field, type = 'text', placeholder, maxLen }) => (
+        <div>
+          <label htmlFor={`pp-${field}`} style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-dim)', marginBottom: 6 }}>{label}</label>
+          <input id={`pp-${field}`} className="input-field" type={type} placeholder={placeholder} value={formData[field]}
+            onChange={handleChange(field)} maxLength={maxLen}
+            style={errors[field] ? { borderColor: 'var(--pp-error)' } : {}} />
+          {errors[field] && <span style={{ fontSize: 12, color: 'var(--pp-error)', marginTop: 4, display: 'block' }}>{errors[field]}</span>}
+        </div>
+      );
+
+      return (
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+          <div className="card pp-modal-card" style={{
+            maxWidth: 440, width: '100%', padding: '40px 36px',
+            animation: 'fadeUp 0.3s var(--ease-out)',
+            boxShadow: 'var(--shadow-lg)',
+            position: 'relative'
+          }}>
+            <button onClick={onClose} style={{
+              position: 'absolute', top: 16, right: 16, background: 'none', border: 'none',
+              color: 'var(--text-faint)', cursor: 'pointer', padding: 6
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+
+            <div style={{ marginBottom: 28 }}>
+              <h3 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.02em' }}>Get your detailed report</h3>
+              <p style={{ fontSize: 14, color: 'var(--text-dim)', lineHeight: 1.55 }}>
+                Your personalized report includes projected cost savings, improvement recommendations, and industry benchmarks.
+              </p>
+            </div>
+
+            {/* Honeypot */}
+            <div style={{ position: 'absolute', left: '-9999px' }} aria-hidden="true">
+              <input type="text" tabIndex="-1" value={hpField} onChange={(e) => setHpField(e.target.value)} autoComplete="off" />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Field label="Business Email" field="email" type="email" placeholder="you@yourfacility.com" maxLen="254" />
+              <Field label="Full Name" field="name" placeholder="Jane Smith" maxLen="100" />
+              <Field label="Organization" field="organization" placeholder="Sunrise Senior Living" maxLen="200" />
+
+              <button className="btn-navy" onClick={handleSubmit} disabled={submitting}
+                style={{ width: '100%', marginTop: 4, padding: '16px 32px', opacity: submitting ? 0.6 : 1 }}>
+                {submitting ? 'Preparing report...' : 'Send my report'}
+              </button>
+
+              <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', lineHeight: 1.55 }}>
+                We will send your report and may follow up once with relevant insights. No spam, no list-sharing.
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ============================================
+    // COMPETITOR BLOCKED
+    // ============================================
+    const CompetitorBlockedScreen = () => (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
+        <Header />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div className="card" style={{ padding: '48px 40px', textAlign: 'center', maxWidth: 480, boxShadow: 'var(--shadow-md)' }}>
+            <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, letterSpacing: '-0.02em' }}>Welcome, Colleague</h2>
+            <p style={{ fontSize: 15, color: 'var(--text-body)', lineHeight: 1.7, marginBottom: 28 }}>
+              It looks like you are visiting from a company in the healthcare payment space.
+              This assessment is designed for facility operators. We would welcome the chance to connect directly.
+            </p>
+            <p style={{ fontSize: 14, color: 'var(--text-dim)' }}>
+              Reach us at <span style={{ color: 'var(--pp-blue)', fontWeight: 700 }}>partnerships@patientpay.com</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+
+    // ============================================
+    // RESULTS JOURNEY — V5
+    // ============================================
+    const ResultsJourney = ({ scores, answers, onEmailSubmit }) => {
+      const [currentSlide, setCurrentSlide] = useState(0);
+      const [transitioning, setTransitioning] = useState(false);
+      const [showEmailModal, setShowEmailModal] = useState(false);
+
+      const insights = calculateInsights({}, answers);
+      const gapAnalysis = getGapAnalysis(scores);
+      const strengths = getStrengths(scores, answers);
+      const recommendations = getActionableRecommendations(answers, scores, insights);
+      const segment = answers['facility_type'];
+      const benchmarks = industryBenchmarks[segment];
+      const useTwoCats = scores.useTwoCategories;
+      const totalSlides = 4;
+
+      useEffect(() => { FunnelTracker.send('results_viewed', { segment }); }, []);
+
+      const goTo = (i) => {
+        if (i === currentSlide || transitioning || i < 0 || i >= totalSlides) return;
+        setTransitioning(true);
+        setTimeout(() => { setCurrentSlide(i); setTransitioning(false); }, 300);
+      };
+
+      const Nav = ({ hideNext }) => (
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', marginTop: 40,
+          paddingTop: 24, borderTop: '1px solid var(--border-dim)'
+        }}>
+          {currentSlide > 0 ? (
+            <button className="btn-secondary" onClick={() => goTo(currentSlide - 1)} style={{ padding: '12px 24px', fontSize: 14 }}>Back</button>
+          ) : <div />}
+          {!hideNext && currentSlide < totalSlides - 1 ? (
+            <button className="btn-primary" onClick={() => goTo(currentSlide + 1)} style={{ padding: '12px 28px', fontSize: 14 }}>Continue</button>
+          ) : <div />}
+        </div>
+      );
+
+      // --- Slide 0: Overview (The Score Reveal) ---
+      const Overview = () => {
+        const gap = gapAnalysis ? gapAnalysis.overall.gap : 0;
+        const catCount = useTwoCats ? 2 : 3;
+        const catNames = segment === 'SNF' ? snfCategoryNames : categoryNames;
+        const catBench = segment === 'SNF'
+          ? [benchmarks.operations, benchmarks.family]
+          : [benchmarks.operations, benchmarks.family, benchmarks.competitive];
+        const catWeights = facilityTypes[segment].categoryWeights;
+
+        return (
+          <div>
+            {/* Score reveal — big number, centered, clean */}
+            <div style={{ textAlign: 'center', marginBottom: 48 }}>
+              <div style={{ marginBottom: 12 }}>
+                <span style={{
+                  fontSize: 80, fontWeight: 900, fontFamily: "'Archivo'",
+                  color: 'var(--text-head)', letterSpacing: '-0.04em', lineHeight: 1
+                }} className="pp-score-number">
+                  <AnimatedNumber value={scores.overall} delay={300} />
+                </span>
+              </div>
+
+              {/* Thin rule below score */}
+              <div style={{ width: 80, height: 2, background: 'var(--border-rule)', margin: '0 auto 16px', borderRadius: 1 }} />
+
+              {/* Score level label — only color usage on this screen */}
+              <div style={{ marginBottom: 16 }}>
+                <span style={{
+                  fontSize: 14, fontWeight: 700, fontFamily: "'Archivo'",
+                  textTransform: 'uppercase', letterSpacing: '0.05em',
+                  color: getAccessibleScoreColor(scores.overall)
+                }}>
+                  {getScoreLevel(scores.overall)}
+                </span>
+              </div>
+
+              {benchmarks && (
+                <p style={{ fontSize: 14, color: 'var(--text-dim)' }}>
+                  Industry average: {benchmarks.overall}
+                  <span style={{
+                    color: gap >= 0 ? 'var(--pp-success)' : 'var(--pp-warning)',
+                    fontWeight: 700, marginLeft: 8
+                  }}>
+                    {gap >= 0 ? '+' : ''}{gap}
+                  </span>
+                </p>
+              )}
+            </div>
+
+            {/* Category breakdown */}
+            <div className="card pp-category-card" style={{ padding: '28px', maxWidth: 500, margin: '0 auto' }}>
+              <p style={{
+                fontSize: 12, fontWeight: 700, color: 'var(--text-dim)', letterSpacing: '0.05em',
+                textTransform: 'uppercase', marginBottom: 20
+              }}>Category Breakdown</p>
+
+              {Array.from({ length: catCount }).map((_, i) => {
+                const s = scores.categories[i];
+                const b = catBench[i];
+                const d = s - b;
+                return (
+                  <div key={i} style={{
+                    marginBottom: i < catCount - 1 ? 20 : 0,
+                    animation: `fadeUp 0.4s var(--ease-out) ${0.4 + i * 0.1}s both`
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, alignItems: 'baseline' }}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-head)' }}>
+                        {catNames[i]}
+                        <span style={{ color: 'var(--text-faint)', fontWeight: 400, marginLeft: 8, fontSize: 12 }}>
+                          {Math.round(catWeights[i] * 100)}% weight
+                        </span>
+                      </span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-head)', fontFamily: "'Archivo'" }}>
+                        {s}
+                        <span style={{
+                          color: d >= 0 ? 'var(--pp-success)' : 'var(--pp-warning)',
+                          fontSize: 12, marginLeft: 6, fontWeight: 600
+                        }}>
+                          {d >= 0 ? '+' : ''}{d}
+                        </span>
+                      </span>
+                    </div>
+                    <div style={{
+                      height: 8, borderRadius: 4, background: 'var(--bg-inset)',
+                      overflow: 'hidden', position: 'relative'
+                    }}>
+                      <div style={{
+                        height: '100%', borderRadius: 4, background: CATEGORY_COLORS[i],
+                        width: `${s}%`, transition: 'width 1.2s var(--ease-out)'
+                      }} />
+                      <div style={{
+                        position: 'absolute', top: -2, bottom: -2, left: `${b}%`,
+                        width: 2, background: 'var(--text-dim)', borderRadius: 1
+                      }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <Nav />
+          </div>
+        );
+      };
+
+      // --- Slide 1: Insights ---
+      const Insights = () => {
+        return (
+          <div>
+            <h2 style={{
+              fontSize: 'clamp(26px, 3.5vw, 34px)', fontWeight: 800,
+              marginBottom: 32, letterSpacing: '-0.02em'
+            }}>Key Insights</h2>
+
+            {strengths.hasStrengths && (
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <div style={{ width: 3, height: 20, borderRadius: 2, background: 'var(--pp-success)' }} />
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-head)' }}>Strengths</h3>
+                </div>
+                <p style={{ fontSize: 15, color: 'var(--text-body)', lineHeight: 1.65, marginBottom: 14 }}>
+                  {strengths.summaryStatement}
+                </p>
+                {strengths.strongQuestions.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {strengths.strongQuestions.slice(0, 3).map((sq, i) => (
+                      <div key={i} style={{
+                        padding: '12px 16px', borderRadius: 8,
+                        background: 'var(--pp-success-light)',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                      }}>
+                        <span style={{ fontSize: 14, color: 'var(--text-body)' }}>{sq.question}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--pp-success)', fontFamily: "'Archivo'" }}>{sq.score}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                <div style={{ width: 3, height: 20, borderRadius: 2, background: 'var(--pp-warning)' }} />
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-head)' }}>Opportunities</h3>
+              </div>
+              {gapAnalysis && gapAnalysis.categories && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {gapAnalysis.categories.filter(c => c.gap < 0).sort((a, b) => a.gap - b.gap).slice(0, 3).map((cat, i) => (
+                    <div key={i} className="card" style={{ padding: '16px 20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-head)' }}>{cat.name}</span>
+                        <span style={{ fontSize: 12, color: 'var(--pp-warning)', fontWeight: 700 }}>{cat.gap} vs benchmark</span>
+                      </div>
+                      <p style={{ fontSize: 14, color: 'var(--text-dim)', lineHeight: 1.55 }}>
+                        {resultsFlow.getCategoryRecommendation(cat.index, segment)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {insights && insights.potentialFreedCash > 0 && (
+                <div style={{
+                  marginTop: 20, padding: '16px 20px', borderRadius: 8,
+                  background: 'var(--pp-gold-light)', borderLeft: '3px solid var(--pp-gold)'
+                }}>
+                  <p style={{ fontSize: 14, color: 'var(--text-body)', lineHeight: 1.6 }}>
+                    {segment === 'SNF'
+                      ? 'Based on your answers, there is a measurable financial opportunity in improving collection velocity and reducing AR days.'
+                      : 'Based on your answers, there is a measurable financial opportunity in streamlining your billing operations and improving the family payment experience.'}
+                    {' '}Your detailed report includes specific projections.
+                  </p>
+                </div>
+              )}
+            </div>
+            <Nav />
+          </div>
+        );
+      };
+
+      // --- Slide 2: Improvements ---
+      const Improvements = () => {
+        const top = recommendations.slice(0, 3);
+        return (
+          <div>
+            <h2 style={{
+              fontSize: 'clamp(26px, 3.5vw, 34px)', fontWeight: 800,
+              marginBottom: 8, letterSpacing: '-0.02em'
+            }}>
+              Recommended Improvements
+            </h2>
+            <p style={{ fontSize: 15, color: 'var(--text-dim)', marginBottom: 32, lineHeight: 1.55 }}>
+              We identified {recommendations.length} areas where targeted changes could improve your score.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
+              {top.map((rec, i) => (
+                <div key={rec.id} className="card" style={{
+                  padding: '18px 20px',
+                  display: 'flex', alignItems: 'center', gap: 16
+                }}>
+                  <span style={{
+                    width: 32, height: 32, borderRadius: 6, flexShrink: 0,
+                    background: 'var(--bg-inset)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 14, fontWeight: 800, color: 'var(--pp-blue)', fontFamily: "'Archivo'"
+                  }}>{i + 1}</span>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-head)' }}>{rec.title}</span>
+                </div>
+              ))}
+              {recommendations.length > 3 && (
+                <div style={{
+                  padding: '12px 20px', borderRadius: 8,
+                  border: '1px dashed var(--border-rule)', textAlign: 'center'
+                }}>
+                  <span style={{ fontSize: 14, color: 'var(--text-dim)' }}>
+                    + {recommendations.length - 3} more in your detailed report
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div style={{
+              padding: '16px 20px', borderRadius: 8,
+              background: 'var(--bg-inset)', borderLeft: '3px solid var(--pp-blue)'
+            }}>
+              <p style={{ fontSize: 14, color: 'var(--text-body)', lineHeight: 1.6 }}>
+                Your full report includes projected cost savings, step-by-step action plans, and ROI projections for each recommendation.
+              </p>
+            </div>
+            <Nav />
+          </div>
+        );
+      };
+
+      // --- Slide 3: Next Steps (The CTA) ---
+      const NextSteps = () => (
+        <div style={{ textAlign: 'center' }}>
+          <h2 style={{
+            fontSize: 'clamp(26px, 3.5vw, 34px)', fontWeight: 800,
+            marginBottom: 14, letterSpacing: '-0.02em'
+          }}>
+            Your report is ready
+          </h2>
+          <p style={{ fontSize: 16, color: 'var(--text-dim)', maxWidth: 460, margin: '0 auto 40px', lineHeight: 1.6 }}>
+            Get your personalized Payment Readiness Report with projected savings, benchmarks, and a prioritized action plan.
+          </p>
+
+          {/* Report contents preview */}
+          <div className="card pp-report-card" style={{
+            maxWidth: 400, margin: '0 auto 36px', padding: '24px 28px', textAlign: 'left'
+          }}>
+            <p style={{
+              fontSize: 12, fontWeight: 700, color: 'var(--text-dim)', letterSpacing: '0.05em',
+              textTransform: 'uppercase', marginBottom: 16
+            }}>
+              Report includes
+            </p>
+            {['Score breakdown by category', 'Industry benchmark comparison', 'Financial impact projections', 'Prioritized action plan'].map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17l-5-5" stroke="var(--pp-blue)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span style={{ fontSize: 15, color: 'var(--text-body)' }}>{item}</span>
+              </div>
+            ))}
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-dim)' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>
+                {useTwoCats ? '5' : '6'}-page personalized PDF report
+              </span>
+            </div>
+          </div>
+
+          {/* THE CTA — navy, the only navy surface in the entire assessment */}
+          <button className="btn-navy" onClick={() => setShowEmailModal(true)}
+            style={{ maxWidth: 380, width: '100%' }}>
+            Get your detailed report
+          </button>
+
+          <p style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 12 }}>
+            No account required. No spam.
+          </p>
+
+          {/* Sources */}
+          <div style={{ marginTop: 56, paddingTop: 24, borderTop: '1px solid var(--border-dim)', textAlign: 'left' }}>
+            <p style={{
+              fontSize: 11, fontWeight: 700, color: 'var(--text-faint)', letterSpacing: '0.05em',
+              textTransform: 'uppercase', marginBottom: 10
+            }}>
+              Data Sources
+            </p>
+            <div className="pp-sources" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {sources.map((src) => (
+                <span key={src.id} style={{
+                  fontSize: 11, color: 'var(--text-faint)', padding: '4px 8px',
+                  borderRadius: 4, background: 'var(--bg-inset)', border: '1px solid var(--border-dim)'
+                }}>{src.name}</span>
+              ))}
+            </div>
+          </div>
+          <Nav hideNext />
+        </div>
+      );
+
+      const slides = [Overview, Insights, Improvements, NextSteps];
+      const Slide = slides[currentSlide];
+
+      return (
+        <>
+          <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
+            <Header />
+            <div className="pp-results-wrap" style={{ flex: 1, padding: '40px 24px' }}>
+              <div className="pp-results-content" style={{
+                maxWidth: 660, margin: '0 auto',
+                opacity: transitioning ? 0 : 1,
+                transform: transitioning ? 'translateY(6px)' : 'translateY(0)',
+                transition: 'all 0.3s var(--ease-out)'
+              }}>
+                {/* Slide indicators — simple dots */}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 36 }}>
+                  {Array.from({ length: totalSlides }).map((_, i) => (
+                    <button key={i} onClick={() => goTo(i)} style={{
+                      width: 8, height: 8, borderRadius: '50%',
+                      background: i === currentSlide ? 'var(--pp-blue)' : i < currentSlide ? 'var(--border-rule)' : 'var(--border-dim)',
+                      border: 'none', cursor: 'pointer', padding: 0,
+                      transition: 'all 0.25s ease'
+                    }} />
+                  ))}
+                </div>
+                <Slide />
+              </div>
+            </div>
+          </div>
+
+          {showEmailModal && (
+            <EmailGateModal
+              segment={segment}
+              onClose={() => setShowEmailModal(false)}
+              onSubmit={(data) => {
+                setShowEmailModal(false);
+                if (data.isCompetitor) { onEmailSubmit({ isCompetitor: true }); return; }
+                onEmailSubmit(data);
+              }}
+            />
+          )}
+        </>
+      );
+    };
+
+    // ============================================
+    // DOWNLOAD CONFIRMATION
+    // ============================================
+    const DownloadConfirmation = ({ onStartOver, segment }) => (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
+        <Header />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div className="card pp-confirm-card" style={{ padding: '48px 40px', textAlign: 'center', maxWidth: 480, boxShadow: 'var(--shadow-md)' }}>
+            <div style={{ marginBottom: 20 }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--pp-success)' }}>
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 10, letterSpacing: '-0.02em' }}>Your report is ready</h2>
+            <p style={{ fontSize: 15, color: 'var(--text-body)', lineHeight: 1.65, marginBottom: 24 }}>
+              Check your downloads folder for your Payment Readiness Report.
+            </p>
+            <div style={{
+              padding: '16px 20px', borderRadius: 8, marginBottom: 28,
+              background: 'var(--pp-gold-light)', borderLeft: '3px solid var(--pp-gold)', textAlign: 'left'
+            }}>
+              <p style={{ fontSize: 14, color: 'var(--text-body)', lineHeight: 1.6 }}>
+                {segment === 'SNF'
+                  ? 'Facilities that modernize patient payment operations see an average 25% improvement in collection rates and 90% reduction in cost to collect.'
+                  : 'Communities that modernize their billing see an average 25% improvement in collection rates and significant reduction in family billing inquiries.'}
+              </p>
+            </div>
+            <button className="btn-secondary" onClick={onStartOver}>Start over</button>
+          </div>
+        </div>
+      </div>
+    );
+
+    // ============================================
+    // MAIN APP
+    // ============================================
+    const App = () => {
+      const [screen, setScreen] = useState('landing');
+      const [answers, setAnswers] = useState({});
+      const [scores, setScores] = useState(null);
+      const [questionIndex, setQuestionIndex] = useState(0);
+      const answersRef = useRef(answers);
+      answersRef.current = answers;
+
+      const visibleQuestions = getVisibleQuestions(answers);
+      const safeIndex = visibleQuestions.length > 0 ? Math.min(questionIndex, visibleQuestions.length - 1) : 0;
+      const currentQuestion = visibleQuestions.length > 0 ? visibleQuestions[safeIndex] : null;
+
+      const handleSelectSegment = (id) => {
+        setAnswers({ facility_type: id });
+        setQuestionIndex(0);
+        setScreen('questions');
+      };
+
+      const handleEmailSubmit = async (data) => {
+        if (data.isCompetitor) { setScreen('competitor'); return; }
+        FunnelTracker.send('email_submitted', {
+          segment: answers['facility_type'],
+          name: data.name, email: data.email, organization: data.organizationName
+        });
+        setScreen('downloading');
+        try {
+          const [wh] = await Promise.all([
+            sendWebhook(data, answers, scores, 'v5-index'),
+            downloadPDFReport(data, answers, scores)
+          ]);
+          FunnelTracker.send('pdf_downloaded', { segment: answers['facility_type'] });
+          if (wh.success) console.log('Lead data sent:', wh.submissionId);
+        } catch (err) { console.warn('Download/webhook error:', err); }
+      };
+
+      const handleStartOver = () => {
+        setScreen('landing'); setAnswers({}); setScores(null); setQuestionIndex(0);
+      };
+
+      return (
+        <>
+          {screen === 'landing' && <LandingScreen onSelectSegment={handleSelectSegment} />}
+          {screen === 'questions' && currentQuestion && (
+            <QuestionCard
+              key={currentQuestion.id}
+              question={currentQuestion}
+              answer={answers[currentQuestion.id]}
+              selectedSegment={answers['facility_type']}
+              onAnswer={(id, val) => setAnswers(prev => ({ ...prev, [id]: val }))}
+              onNext={(id, val) => {
+                const latest = answersRef.current;
+                const updated = { ...latest, [id]: val };
+                const vis = getVisibleQuestions(updated);
+                const idx = vis.findIndex(q => q.id === id);
+                if (idx === -1 || idx + 1 >= vis.length) {
+                  FunnelTracker.send('questions_completed', { segment: updated['facility_type'] });
+                  setScreen('processing');
+                } else { setQuestionIndex(idx + 1); }
+              }}
+              onBack={() => safeIndex > 0 && setQuestionIndex(safeIndex - 1)}
+              questionIndex={safeIndex}
+              totalQuestions={visibleQuestions.length}
+              isFirst={safeIndex === 0}
+              isLast={safeIndex === visibleQuestions.length - 1}
+            />
+          )}
+          {screen === 'processing' && <ProcessingScreen onComplete={() => {
+            setScores(calculateScores(answers));
+            setScreen('results');
+          }} />}
+          {screen === 'results' && scores && (
+            <ResultsJourney scores={scores} answers={answers} onEmailSubmit={handleEmailSubmit} />
+          )}
+          {screen === 'downloading' && <DownloadConfirmation onStartOver={handleStartOver} segment={answers['facility_type']} />}
+          {screen === 'competitor' && <CompetitorBlockedScreen />}
+        </>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><App /></ErrorBoundary>);
+
+    // Iframe height communication for Webflow embedding
+    function notifyParentHeight() {
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: 'resize', height: Math.max(document.body.scrollHeight, document.documentElement.scrollHeight) }, '*');
+      }
+    }
+    const resizeObserver = new ResizeObserver(notifyParentHeight);
+    resizeObserver.observe(document.body);
+    window.addEventListener('load', notifyParentHeight);
+  </script>
+</body>
+</html>
