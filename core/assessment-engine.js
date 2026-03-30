@@ -325,7 +325,7 @@ const Questions = [
       { index: 2, weight: 0.30 }  // Competitive Position (secondary)
     ],
     question: "Which payment methods does your community currently accept?",
-    subtext: "Select all that apply — communities offering 4+ payment options see faster collection",
+    subtext: "Select all that apply. Communities offering 4+ payment options see faster collection.",
     type: "multi",
     segments: ['SL'],
     options: [
@@ -349,7 +349,7 @@ const Questions = [
     id: 'staff_time',
     category: "Operations",
     categoryIndex: 0,
-    question: "How many hours per week does your billing team spend on manual payment tasks — printing statements, processing checks, following up on unpaid balances?",
+    question: "How many hours per week does your billing team spend on manual payment tasks such as printing statements, processing checks, and following up on unpaid balances?",
     type: "single",
     segments: ['SL'],
     options: [
@@ -430,7 +430,7 @@ const Questions = [
     category: "Collection Efficiency",
     categoryIndex: 0,
     question: "How does your facility deliver billing statements to patients and families?",
-    subtext: "Select all that apply — text-to-pay achieves 60% payment rate vs. 43% industry average",
+    subtext: "Select all that apply. Text-to-pay achieves 60% payment rate vs. 43% industry average.",
     type: "multi",
     segments: ['SNF'],
     options: [
@@ -492,7 +492,7 @@ const Questions = [
     id: 'snf_staff_time',
     category: "Collection Efficiency",
     categoryIndex: 0,
-    question: "How many hours per week does your billing team spend on manual patient payment tasks — printing statements, processing checks, following up on balances?",
+    question: "How many hours per week does your billing team spend on manual patient payment tasks such as printing statements, processing checks, and following up on balances?",
     type: "single",
     segments: ['SNF'],
     options: [
@@ -527,7 +527,7 @@ const Questions = [
     ],
     insight: {
       trigger: (val) => val === 'no' || val === 'unsure' || val === 'low_enrollment' || val === 'partial',
-      message: "Nearly 100% of card-paying families say they would use autopay if offered. Even communities that offer autopay often see under 20% enrollment — active campaigns can change that.",
+      message: "Nearly 100% of card-paying families say they would use autopay if offered. Even communities that offer autopay often see under 20% enrollment. Active campaigns can change that.",
       proofPoint: "80% of card payments happen without staff involvement with autopay"
     }
   },
@@ -677,7 +677,7 @@ const RecommendationDefinitions = [
       return answers['facility_type'] === 'SL' &&
         (d === 'Paper mail only' || (Array.isArray(d) && d.length === 1 && d[0] === 'Paper mail'));
     },
-    currentState: "Statements delivered by paper mail only — 2-3 week delivery cycle",
+    currentState: "Statements delivered by paper mail only. 2-3 week delivery cycle.",
     targetState: "Multi-channel delivery: email, text, portal, with paper as backup",
     impact: {
       description: "Faster delivery means faster payment and lower postage costs",
@@ -687,7 +687,7 @@ const RecommendationDefinitions = [
         "98% text message open rate vs. 20% for direct mail"
       ]
     },
-    patientPayConnection: "PatientPay delivers statements via email, text, and portal — with automatic fallback to paper for families who prefer it.",
+    patientPayConnection: "PatientPay delivers statements via email, text, and portal with automatic fallback to paper for families who prefer it.",
     scoreImpact: { category: 'operations', points: 20, overall: 6 },
     basePriority: 80
   },
@@ -725,17 +725,17 @@ const RecommendationDefinitions = [
       return answers['facility_type'] === 'SL' &&
         (mg === 'No' || mg === 'Unsure');
     },
-    currentState: "No multi-guarantor billing — one person coordinates payment from the entire family",
+    currentState: "No multi-guarantor billing. One person coordinates payment from the entire family.",
     targetState: "Each family member receives their own statement and pays their portion directly",
     impact: {
       description: "Eliminate the 'statement coordinator' bottleneck that delays payments",
       metrics: [
         "37% of families miss payments due to billing confusion, not inability to pay",
-        "63 million Americans are caregivers — families want to share the financial load",
+        "63 million Americans are caregivers. Families want to share the financial load.",
         "96% reduction in processing time with automated split billing"
       ]
     },
-    patientPayConnection: "PatientPay automatically calculates splits, generates individual statements, and tracks payments per guarantor — turning hours of work into seconds.",
+    patientPayConnection: "PatientPay automatically calculates splits, generates individual statements, and tracks payments per guarantor, turning hours of work into seconds.",
     scoreImpact: { category: 'operations', points: 20, overall: 8 },
     basePriority: 85
   },
@@ -750,8 +750,8 @@ const RecommendationDefinitions = [
     },
     currentState: (answers) => {
       const rate = answers['autopay_rate'] || 0;
-      if (rate === 0) return "No autopay program in place — every payment requires manual effort";
-      return `Only ${rate}% autopay enrollment — below the 50% high-performer benchmark`;
+      if (rate === 0) return "No autopay program in place. Every payment requires manual effort.";
+      return `Only ${rate}% autopay enrollment, below the 50% high-performer benchmark.`;
     },
     targetState: "50%+ families on automated recurring payments for predictable cash flow",
     impact: {
@@ -779,7 +779,7 @@ const RecommendationDefinitions = [
     currentState: (answers) => {
       const exp = answers['family_experience'];
       if (exp === 'poor') {
-        return "Billing is a frequent source of family complaints — a significant pain point";
+        return "Billing is a frequent source of family complaints, a significant pain point.";
       }
       return "Families experience occasional billing friction and confusion";
     },
@@ -808,9 +808,9 @@ const RecommendationDefinitions = [
     },
     currentState: (answers) => {
       const time = answers['staff_time'];
-      if (time === 'excessive') return "30+ hours per week on manual billing — a major operational cost";
-      if (time === 'significant') return "15-30 hours per week on manual billing tasks";
-      return "Manual billing effort is unclear — tracking this metric is the first step";
+      if (time === 'excessive') return "30+ hours per week on manual billing, a major operational cost.";
+      if (time === 'significant') return "15-30 hours per week on manual billing tasks.";
+      return "Manual billing effort is unclear. Tracking this metric is the first step.";
     },
     targetState: "Automated billing workflow with minimal manual intervention",
     impact: {
@@ -821,7 +821,7 @@ const RecommendationDefinitions = [
         "96% reduction in processing time with automation"
       ]
     },
-    patientPayConnection: "PatientPay automates statement delivery, payment processing, and reconciliation — eliminating the bulk of manual billing work.",
+    patientPayConnection: "PatientPay automates statement delivery, payment processing, and reconciliation, eliminating the bulk of manual billing work.",
     scoreImpact: { category: 'operations', points: 20, overall: 6 },
     basePriority: 82
   },
@@ -840,7 +840,7 @@ const RecommendationDefinitions = [
       return answers['facility_type'] === 'SNF' &&
         (d === 'Paper mail only' || (Array.isArray(d) && d.length === 1 && d[0] === 'Paper mail'));
     },
-    currentState: "Statements delivered by paper mail only — 2-3 week delivery cycle",
+    currentState: "Statements delivered by paper mail only. 2-3 week delivery cycle.",
     targetState: "Multi-channel delivery: email, text, portal, with paper as backup",
     impact: {
       description: "Faster delivery means faster payment and lower postage costs",
@@ -850,7 +850,7 @@ const RecommendationDefinitions = [
         "98% text message open rate vs. 20% for direct mail"
       ]
     },
-    patientPayConnection: "PatientPay delivers statements via email, text, and portal — with automatic fallback to paper for families who prefer it.",
+    patientPayConnection: "PatientPay delivers statements via email, text, and portal with automatic fallback to paper for families who prefer it.",
     scoreImpact: { category: 'operations', points: 20, overall: 12 },
     basePriority: 80,
     segmentSpecific: ['SNF']
@@ -868,7 +868,7 @@ const RecommendationDefinitions = [
     currentState: (answers) => {
       const methods = answers['snf_payment_methods'] || [];
       if (methods.length === 0 || (methods.length === 1 && methods[0] === 'checks')) {
-        return "Only accepting checks — no digital payment options";
+        return "Only accepting checks. No digital payment options.";
       }
       return "Limited digital payment options available";
     },
@@ -881,7 +881,7 @@ const RecommendationDefinitions = [
         "67% would choose a card-accepting facility over one that does not"
       ]
     },
-    patientPayConnection: "PatientPay enables cards, text-to-pay, portal payments, and autopay — meeting families where they are.",
+    patientPayConnection: "PatientPay enables cards, text-to-pay, portal payments, and autopay, meeting families where they are.",
     scoreImpact: { category: 'operations', points: 25, overall: 12 },
     basePriority: 85,
     segmentSpecific: ['SNF']
@@ -897,7 +897,7 @@ const RecommendationDefinitions = [
     },
     currentState: (answers) => {
       const rate = answers['snf_collection_rate'] || 75;
-      return `Your collection rate is ${rate}% — below the 90% industry target`;
+      return `Your collection rate is ${rate}%, below the 90% industry target.`;
     },
     targetState: "90%+ patient responsibility collection rate with modern payment tools",
     impact: {
@@ -925,10 +925,10 @@ const RecommendationDefinitions = [
     },
     currentState: (answers) => {
       const autopay = answers['snf_autopay'];
-      if (autopay === 'no') return "No autopay option — families must manually pay each cycle";
-      if (autopay === 'low_enrollment') return "Autopay available but enrollment is low — active campaigns needed";
-      if (autopay === 'partial') return "Autopay only available for some balance types — limiting adoption";
-      return "Autopay status unclear — establishing this metric is the first step";
+      if (autopay === 'no') return "No autopay option. Families must manually pay each cycle.";
+      if (autopay === 'low_enrollment') return "Autopay available but enrollment is low. Active campaigns needed.";
+      if (autopay === 'partial') return "Autopay only available for some balance types, limiting adoption.";
+      return "Autopay status unclear. Establishing this metric is the first step.";
     },
     targetState: "Automated recurring payments with active enrollment campaigns",
     impact: {
@@ -939,7 +939,7 @@ const RecommendationDefinitions = [
         "Autopay families effectively have 0 AR days"
       ]
     },
-    patientPayConnection: "PatientPay makes autopay enrollment easy and runs campaigns to drive adoption — typical customers see 25+ percentage point improvement.",
+    patientPayConnection: "PatientPay makes autopay enrollment easy and runs campaigns to drive adoption. Typical customers see 25+ percentage point improvement.",
     scoreImpact: { category: 'operations', points: 20, overall: 12 },
     basePriority: 80,
     segmentSpecific: ['SNF']
@@ -956,9 +956,9 @@ const RecommendationDefinitions = [
     },
     currentState: (answers) => {
       const time = answers['snf_staff_time'];
-      if (time === 'excessive') return "30+ hours per week on manual billing — a major operational cost";
-      if (time === 'significant') return "15-30 hours per week on manual billing tasks";
-      return "Manual billing effort is unclear — tracking this metric is the first step";
+      if (time === 'excessive') return "30+ hours per week on manual billing, a major operational cost.";
+      if (time === 'significant') return "15-30 hours per week on manual billing tasks.";
+      return "Manual billing effort is unclear. Tracking this metric is the first step.";
     },
     targetState: "Automated billing workflow with minimal manual intervention",
     impact: {
@@ -969,7 +969,7 @@ const RecommendationDefinitions = [
         "96% reduction in processing time with automation"
       ]
     },
-    patientPayConnection: "PatientPay automates statement delivery, payment processing, and reconciliation — eliminating the bulk of manual billing work.",
+    patientPayConnection: "PatientPay automates statement delivery, payment processing, and reconciliation, eliminating the bulk of manual billing work.",
     scoreImpact: { category: 'operations', points: 20, overall: 12 },
     basePriority: 82,
     segmentSpecific: ['SNF']
@@ -986,8 +986,8 @@ const RecommendationDefinitions = [
     },
     currentState: (answers) => {
       const exp = answers['snf_family_experience'];
-      if (exp === 'poor') return "Billing generates weekly or more complaints — a significant operational and satisfaction burden";
-      return "Billing generates regular complaints — an opportunity to improve family satisfaction";
+      if (exp === 'poor') return "Billing generates weekly or more complaints, a significant operational and satisfaction burden.";
+      return "Billing generates regular complaints, an opportunity to improve family satisfaction.";
     },
     targetState: "Clear, modern billing that families rarely need to call about",
     impact: {
@@ -1473,7 +1473,7 @@ function generateResultsSummary(scores, gapAnalysis, recommendations) {
   } else if (gap < 0) {
     opportunityStatement = `You are ${Math.abs(gap)} points below the ${benchmarkLabel} benchmark, but targeted improvements can close the gap quickly.`;
   } else {
-    opportunityStatement = `You are meeting or exceeding the ${benchmarkLabel} benchmark — focus on maintaining your edge.`;
+    opportunityStatement = `You are meeting or exceeding the ${benchmarkLabel} benchmark. Focus on maintaining your edge.`;
   }
 
   // Strength statement
@@ -2849,7 +2849,7 @@ async function generatePDFReport(formData, answers, scores) {
         setColor(colors.textMuted);
         doc.setFontSize(fontSize.sm);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Based on ${insights.staffHoursPerWeek} hours/week at $25/hr — recoverable through automation`, margin + spacing.lg, y + 55);
+        doc.text(`Based on ${insights.staffHoursPerWeek} hours/week at $25/hr, recoverable through automation`, margin + spacing.lg, y + 55);
         y += 78;
       }
 

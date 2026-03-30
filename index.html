@@ -833,25 +833,21 @@
                   </div>
                 )}
 
-                {/* Insight callout — always reserves space, fades in/out smoothly */}
-                {q.insight && typeof q.insight.trigger === 'function' && (() => {
-                  const showInsight = q.insight.trigger(localValue);
-                  return (
-                    <div style={{
-                      marginTop: 24, padding: '16px 20px', borderRadius: 8,
-                      background: 'var(--pp-gold-light)', borderLeft: '3px solid var(--pp-gold)',
-                      opacity: showInsight ? 1 : 0,
-                      transition: 'opacity 0.3s ease'
-                    }}>
-                      <p style={{ fontSize: 14, color: 'var(--text-body)', lineHeight: 1.6 }}>
-                        {q.insight.message.replace('{value}', localValue)}
+                {/* Insight callout — always visible when question has an insight */}
+                {q.insight && q.insight.message && (
+                  <div style={{
+                    marginTop: 24, padding: '16px 20px', borderRadius: 8,
+                    background: 'var(--pp-gold-light)', borderLeft: '3px solid var(--pp-gold)',
+                    animation: 'fadeUp 0.4s var(--ease-out) 0.2s both'
+                  }}>
+                    <p style={{ fontSize: 14, color: 'var(--text-body)', lineHeight: 1.6 }}>
+                      {q.insight.message.replace('{value}', localValue)}
                       </p>
                       {q.insight.proofPoint && (
                         <p style={{ fontSize: 13, color: 'var(--pp-gold)', fontWeight: 700, marginTop: 8 }}>{q.insight.proofPoint}</p>
                       )}
                     </div>
-                  );
-                })()}
+                )}
 
                 {/* Navigation */}
                 <div style={{
@@ -1522,7 +1518,7 @@
     // ============================================
     // DOWNLOAD CONFIRMATION
     // ============================================
-    const DownloadConfirmation = ({ onStartOver, segment }) => (
+    const DownloadConfirmation = ({ onStartOver, onBackToResults, segment }) => (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
         <Header />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
@@ -1546,7 +1542,10 @@
                   : 'Communities that modernize their billing see an average 25% improvement in collection rates and significant reduction in family billing inquiries.'}
               </p>
             </div>
-            <button className="btn-secondary" onClick={onStartOver}>Start over</button>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button className="btn-primary" onClick={onBackToResults} style={{ padding: '14px 28px' }}>Back to my results</button>
+              <button className="btn-secondary" onClick={onStartOver} style={{ padding: '14px 28px' }}>Start over</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1628,7 +1627,7 @@
           {screen === 'results' && scores && (
             <ResultsJourney scores={scores} answers={answers} onEmailSubmit={handleEmailSubmit} />
           )}
-          {screen === 'downloading' && <DownloadConfirmation onStartOver={handleStartOver} segment={answers['facility_type']} />}
+          {screen === 'downloading' && <DownloadConfirmation onStartOver={handleStartOver} onBackToResults={() => setScreen('results')} segment={answers['facility_type']} />}
           {screen === 'competitor' && <CompetitorBlockedScreen />}
         </>
       );
