@@ -340,6 +340,10 @@ const Questions = [
       label: "Paper checks only",
       score: 10,
       insight: "75% of long-term care bill payers want credit/debit card options. 67% would choose a facility that accepts cards over one that does not."
+    },
+    insight: {
+      message: "75% of long-term care bill payers want credit or debit card options. 67% would choose a card-accepting facility over one that does not accept cards.",
+      proofPoint: "69% of families are willing to accept convenience fees for card payment"
     }
   },
 
@@ -444,6 +448,10 @@ const Questions = [
       label: "Paper mail only",
       score: 10,
       insight: "98% text message open rate vs. 20% for direct mail. Text-to-pay achieves 60% payment rate vs. 43% industry average."
+    },
+    insight: {
+      message: "98% text message open rate vs. 20% for direct mail. Digital delivery converts to payment 15-20 days faster than paper.",
+      proofPoint: "Text-to-pay achieves 60% payment rate vs. 43% industry average"
     }
   },
 
