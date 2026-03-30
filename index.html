@@ -654,7 +654,9 @@
               {/* Step label + segment */}
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14,
-                opacity: phase === 'visible' ? 1 : 0, transition: 'opacity 0.3s ease'
+                opacity: phase === 'visible' ? 1 : 0,
+                transform: phase === 'entering' ? 'translateY(12px)' : phase === 'exiting' ? 'translateY(-12px)' : 'translateY(0)',
+                transition: 'opacity 0.35s var(--ease-out), transform 0.35s var(--ease-out)'
               }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-dim)' }}>
                   Question {questionIndex + 1} of {totalQuestions}
@@ -686,8 +688,8 @@
               {/* Question content */}
               <div style={{
                 opacity: phase === 'visible' ? 1 : 0,
-                transform: phase === 'visible' ? 'translateY(0)' : 'translateY(8px)',
-                transition: 'all 0.4s var(--ease-out)'
+                transform: phase === 'entering' ? 'translateY(16px)' : phase === 'exiting' ? 'translateY(-16px)' : 'translateY(0)',
+                transition: 'opacity 0.35s var(--ease-out), transform 0.35s var(--ease-out)'
               }}>
                 <h2 style={{
                   fontSize: 'clamp(24px, 3.5vw, 30px)', fontWeight: 800,
@@ -925,8 +927,7 @@
           newErrors.email = 'Please enter a valid email';
         } else {
           const d = formData.email.trim().toLowerCase().split('@')[1];
-          if (FREE_EMAIL_DOMAINS.includes(d)) newErrors.email = 'Please use your business email address';
-          else if (COMPETITOR_DOMAINS.includes(d)) newErrors.email = 'competitor';
+          if (COMPETITOR_DOMAINS.includes(d)) newErrors.email = 'competitor';
         }
         if (!formData.organization.trim()) newErrors.organization = 'Required';
         if (formData.organization.trim().length > 200) newErrors.organization = 'Organization name is too long';
@@ -946,16 +947,6 @@
         setFormData(prev => ({ ...prev, [field]: e.target.value }));
         if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
       };
-
-      const Field = ({ label, field, type = 'text', placeholder, maxLen }) => (
-        <div>
-          <label htmlFor={`pp-${field}`} style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-dim)', marginBottom: 6 }}>{label}</label>
-          <input id={`pp-${field}`} className="input-field" type={type} placeholder={placeholder} value={formData[field]}
-            onChange={handleChange(field)} maxLength={maxLen}
-            style={errors[field] ? { borderColor: 'var(--pp-error)' } : {}} />
-          {errors[field] && <span style={{ fontSize: 12, color: 'var(--pp-error)', marginTop: 4, display: 'block' }}>{errors[field]}</span>}
-        </div>
-      );
 
       return (
         <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -987,9 +978,27 @@
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Field label="Business Email" field="email" type="email" placeholder="you@yourfacility.com" maxLen="254" />
-              <Field label="Full Name" field="name" placeholder="Jane Smith" maxLen="100" />
-              <Field label="Organization" field="organization" placeholder="Sunrise Senior Living" maxLen="200" />
+              <div>
+                <label htmlFor="pp-email" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-dim)', marginBottom: 6 }}>Email</label>
+                <input id="pp-email" className="input-field" type="email" placeholder="jane@example.com" value={formData.email}
+                  onChange={handleChange('email')} maxLength="254"
+                  style={errors.email ? { borderColor: 'var(--pp-error)' } : {}} />
+                {errors.email && <span style={{ fontSize: 12, color: 'var(--pp-error)', marginTop: 4, display: 'block' }}>{errors.email}</span>}
+              </div>
+              <div>
+                <label htmlFor="pp-name" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-dim)', marginBottom: 6 }}>Full Name</label>
+                <input id="pp-name" className="input-field" type="text" placeholder="Jane Smith" value={formData.name}
+                  onChange={handleChange('name')} maxLength="100"
+                  style={errors.name ? { borderColor: 'var(--pp-error)' } : {}} />
+                {errors.name && <span style={{ fontSize: 12, color: 'var(--pp-error)', marginTop: 4, display: 'block' }}>{errors.name}</span>}
+              </div>
+              <div>
+                <label htmlFor="pp-organization" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-dim)', marginBottom: 6 }}>Organization</label>
+                <input id="pp-organization" className="input-field" type="text" placeholder="Sunrise Senior Living" value={formData.organization}
+                  onChange={handleChange('organization')} maxLength="200"
+                  style={errors.organization ? { borderColor: 'var(--pp-error)' } : {}} />
+                {errors.organization && <span style={{ fontSize: 12, color: 'var(--pp-error)', marginTop: 4, display: 'block' }}>{errors.organization}</span>}
+              </div>
 
               <button className="btn-navy" onClick={handleSubmit} disabled={submitting}
                 style={{ width: '100%', marginTop: 4, padding: '16px 32px', opacity: submitting ? 0.6 : 1 }}>
@@ -1038,6 +1047,7 @@
       const gapAnalysis = getGapAnalysis(scores);
       const strengths = getStrengths(scores, answers);
       const recommendations = getActionableRecommendations(answers, scores, insights);
+      const summary = generateResultsSummary(scores, gapAnalysis, recommendations);
       const segment = answers['facility_type'];
       const benchmarks = industryBenchmarks[segment];
       const useTwoCats = scores.useTwoCategories;
@@ -1101,6 +1111,10 @@
                   {getScoreLevel(scores.overall)}
                 </span>
               </div>
+
+              <p style={{ fontSize: 15, color: 'var(--text-body)', maxWidth: 440, margin: '0 auto 8px', lineHeight: 1.6 }}>
+                {summary.headline}
+              </p>
 
               {benchmarks && (
                 <p style={{ fontSize: 14, color: 'var(--text-dim)' }}>
@@ -1226,16 +1240,76 @@
                 </div>
               )}
 
-              {insights && insights.potentialFreedCash > 0 && (
-                <div style={{
-                  marginTop: 20, padding: '16px 20px', borderRadius: 8,
-                  background: 'var(--pp-gold-light)', borderLeft: '3px solid var(--pp-gold)'
-                }}>
-                  <p style={{ fontSize: 14, color: 'var(--text-body)', lineHeight: 1.6 }}>
-                    {segment === 'SNF'
-                      ? 'Based on your answers, there is a measurable financial opportunity in improving collection velocity and reducing AR days.'
-                      : 'Based on your answers, there is a measurable financial opportunity in streamlining your billing operations and improving the family payment experience.'}
-                    {' '}Your detailed report includes specific projections.
+              {/* Answer-derived financial insights */}
+              {insights && (
+                <div style={{ marginTop: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                    <div style={{ width: 3, height: 20, borderRadius: 2, background: 'var(--pp-gold)' }} />
+                    <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-head)' }}>Your Numbers</h3>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+                    {insights.staffHoursPerWeek > 0 && (
+                      <div className="card" style={{ padding: '14px 16px' }}>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-head)', fontFamily: "'Archivo'", marginBottom: 4 }}>
+                          {insights.staffHoursPerWeek}h/wk
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.4 }}>
+                          Staff time on manual billing
+                        </div>
+                        {insights.annualManualBillingCost > 0 && (
+                          <div style={{ fontSize: 12, color: 'var(--pp-warning)', fontWeight: 600, marginTop: 4 }}>
+                            ~${insights.annualManualBillingCost.toLocaleString()}/yr in labor cost
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {insights.autopayPct !== undefined && (
+                      <div className="card" style={{ padding: '14px 16px' }}>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-head)', fontFamily: "'Archivo'", marginBottom: 4 }}>
+                          {insights.autopayPct}%
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.4 }}>
+                          Estimated autopay enrollment
+                        </div>
+                        {insights.autopayOpportunity > 0 && (
+                          <div style={{ fontSize: 12, color: 'var(--pp-blue)', fontWeight: 600, marginTop: 4 }}>
+                            {insights.autopayOpportunity} more {segment === 'SNF' ? 'patients' : 'residents'} could enroll
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {segment === 'SNF' && insights.collectionGap > 0 && (
+                      <div className="card" style={{ padding: '14px 16px' }}>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-head)', fontFamily: "'Archivo'", marginBottom: 4 }}>
+                          ${insights.collectionGap.toLocaleString()}
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.4 }}>
+                          Estimated annual collection gap
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--pp-warning)', fontWeight: 600, marginTop: 4 }}>
+                          Current rate: {insights.collectionRate}% vs. 90% target
+                        </div>
+                      </div>
+                    )}
+
+                    {insights.potentialFreedCash > 0 && (
+                      <div className="card" style={{ padding: '14px 16px' }}>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-head)', fontFamily: "'Archivo'", marginBottom: 4 }}>
+                          ${insights.potentialFreedCash.toLocaleString()}
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.4 }}>
+                          Cash recoverable from A/R
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--pp-blue)', fontWeight: 600, marginTop: 4 }}>
+                          {insights.arDays} days → {insights.targetArDays} days target
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 10, fontStyle: 'italic' }}>
+                    Projections based on your answers and industry benchmarks for {segment === 'SNF' ? 'skilled nursing' : 'senior living'} facilities.
                   </p>
                 </div>
               )}
@@ -1262,17 +1336,35 @@
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
               {top.map((rec, i) => (
-                <div key={rec.id} className="card" style={{
-                  padding: '18px 20px',
-                  display: 'flex', alignItems: 'center', gap: 16
-                }}>
-                  <span style={{
-                    width: 32, height: 32, borderRadius: 6, flexShrink: 0,
-                    background: 'var(--bg-inset)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 14, fontWeight: 800, color: 'var(--pp-blue)', fontFamily: "'Archivo'"
-                  }}>{i + 1}</span>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-head)' }}>{rec.title}</span>
+                <div key={rec.id} className="card" style={{ padding: '18px 20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: rec.currentState ? 12 : 0 }}>
+                    <span style={{
+                      width: 32, height: 32, borderRadius: 6, flexShrink: 0,
+                      background: 'var(--bg-inset)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 14, fontWeight: 800, color: 'var(--pp-blue)', fontFamily: "'Archivo'"
+                    }}>{i + 1}</span>
+                    <div>
+                      <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-head)' }}>{rec.title}</span>
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, marginLeft: 10,
+                        color: rec.priorityLabel === 'High' ? 'var(--pp-warning)' : 'var(--text-faint)',
+                        textTransform: 'uppercase', letterSpacing: '0.04em'
+                      }}>{rec.priorityLabel}</span>
+                    </div>
+                  </div>
+                  {rec.currentState && (
+                    <div style={{ marginLeft: 48, fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.5 }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 4 }}>
+                        <span style={{ color: 'var(--pp-warning)', fontWeight: 600, flexShrink: 0 }}>Now:</span>
+                        <span>{rec.currentState}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                        <span style={{ color: 'var(--pp-success)', fontWeight: 600, flexShrink: 0 }}>Target:</span>
+                        <span>{rec.targetState}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
               {recommendations.length > 3 && (
