@@ -1062,7 +1062,28 @@
       const useTwoCats = scores.useTwoCategories;
       const totalSlides = 4;
 
-      useEffect(() => { FunnelTracker.send('results_viewed', { segment }); }, []);
+      useEffect(() => {
+        const answersOnly = Object.fromEntries(
+          Object.entries(answers).filter(([k]) => k !== 'facility_type')
+        );
+        FunnelTracker.send('results_viewed', {
+          segment,
+          answers: answersOnly,
+          scores: {
+            overall: scores.overall,
+            level: scores.level,
+            categories: scores.categories.map(c => ({
+              name: c.name, score: c.score, level: c.level, weight: c.weight
+            }))
+          },
+          insights: {
+            annualRevenue: insights.annualRevenue,
+            potentialFreedCash: insights.potentialFreedCash,
+            collectionGap: insights.collectionGap,
+            totalFinancialOpportunity: insights.totalFinancialOpportunity
+          }
+        });
+      }, []);
 
       const goTo = (i) => {
         if (i === currentSlide || transitioning || i < 0 || i >= totalSlides) return;
@@ -1609,7 +1630,14 @@
                 const vis = getVisibleQuestions(updated);
                 const idx = vis.findIndex(q => q.id === id);
                 if (idx === -1 || idx + 1 >= vis.length) {
-                  FunnelTracker.send('questions_completed', { segment: updated['facility_type'] });
+                  const seg = updated['facility_type'];
+                  const answersOnly = Object.fromEntries(
+                    Object.entries(updated).filter(([k]) => k !== 'facility_type')
+                  );
+                  FunnelTracker.send('questions_completed', {
+                    segment: seg,
+                    answers: answersOnly
+                  });
                   setScreen('processing');
                 } else { setQuestionIndex(idx + 1); }
               }}
