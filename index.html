@@ -1629,11 +1629,19 @@
                 const updated = { ...latest, [id]: val };
                 const vis = getVisibleQuestions(updated);
                 const idx = vis.findIndex(q => q.id === id);
+                const seg = updated['facility_type'];
+                const answersOnly = Object.fromEntries(
+                  Object.entries(updated).filter(([k]) => k !== 'facility_type')
+                );
+                FunnelTracker.send('question_answered', {
+                  segment: seg,
+                  questionId: id,
+                  questionNumber: idx + 1,
+                  totalQuestions: vis.length,
+                  answer: val,
+                  allAnswers: answersOnly
+                });
                 if (idx === -1 || idx + 1 >= vis.length) {
-                  const seg = updated['facility_type'];
-                  const answersOnly = Object.fromEntries(
-                    Object.entries(updated).filter(([k]) => k !== 'facility_type')
-                  );
                   FunnelTracker.send('questions_completed', {
                     segment: seg,
                     answers: answersOnly
